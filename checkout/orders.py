@@ -1,14 +1,11 @@
 from checkout.db import *
 from flask import Blueprint
-from flask import flash
-from flask import g
-from flask import redirect
-from flask import render_template
 from flask import request
 from flask import jsonify
 import collections
 
 bp = Blueprint("orders", __name__, url_prefix="/orders")
+
 
 @bp.route("/addorder", methods=["POST"])
 def add_item():
