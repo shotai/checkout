@@ -34,7 +34,7 @@ def add_item():
             description: success add order
             schema:
               $ref: '#/definitions/Brief'
-            examples: {'Scanned Items': 'Respberry Pi B,MacBook Pro','Total': 5399.99}
+            examples: {'Scanned Items': 'MacBook Pro,Respberry Pi B','Total': 5399.99}
 
         """
     try:
@@ -50,55 +50,86 @@ def add_item():
         error = "detail is required."
 
     cart = collections.defaultdict(int)
-    tmp = ",".join("'{}'".format(w) for w in detail.split(","))
+
     scanned_items = []
     if error is None:
-
         for i in detail.split(","):
             cart[i] += 1
 
-        total_price = 0
+        # dealing with free item
+        free_item_num = -1
+        if "43N23P" in cart:
+            free_item_num = cart["43N23P"]
+            if "234234" not in cart or cart["234234"] < cart["43N23P"]:
+                cart["234234"] = cart["43N23P"]
+        print(free_item_num)
+        print(cart)
+
+        # check inventory see if they could full fill the order
+        tmp = ",".join("'{}'".format(w) for w in cart.keys())
         sql = "SELECT * FROM item WHERE sku in ({}) order by name".format(tmp)
-        print(sql)
-        item_rows = db.execute(sql).fetchall()
-
-        for r in item_rows:
-            if r["qty"] < cart[r["sku"]]:
+        rows = db.execute(sql).fetchall()
+        items = {}
+        for r in rows:
+            items[r["sku"]] = (r["name"], r["price"], r["qty"])
+            if cart[r["sku"]] > r["qty"]:
+                if r["sku"] == "234234" and free_item_num > 0:
+                    continue
                 return jsonify(error="cannot full fill the order, {} is not enough".format(r["name"])), 400
-            elif r["sku"] == "234234":
-                if "43N23P" in cart:
-                    total_price += (cart[r["sku"]] - cart["43N23P"]) * r["price"]
-                else:
-                    total_price += r["price"] * cart[r["sku"]]
-            elif r["sku"] == "120P90":
-                total_price += ((cart[r["sku"]] // 3) * r["price"] * 2) + (cart[r["sku"]] % 3 * r["price"])
-            elif r["sku"] == "A304SD" and cart[r["sku"]] >= 3:
-                total_price += r["price"] * cart[r["sku"]] * 0.9
-            else:
-                total_price += r["price"] * cart[r["sku"]]
-            scanned_items.append(r["name"])
+        print(items)
 
-            sql = "UPDATE item SET name='{0}', price={1}, qty={2} WHERE sku='{3}'".format(r["name"], r["price"],
-                                                                                          r["qty"] - cart[r["sku"]],
-                                                                                          r["sku"])
+        # calculating total price
+        total_price = 0
+        update_info = {}
+        for sku, order_num in cart.items():
+            name, price, qty = items[sku]
+            if sku == "120P90":
+                total_price += ((order_num // 3) * price * 2) + (order_num % 3 * price)
+            elif sku == "A304SD" and order_num >= 3:
+                total_price += price * order_num * 0.9
+            elif sku == "234234" and free_item_num > 0:
+                if free_item_num > qty:
+                    order_num = qty
+                if order_num - free_item_num > 0:
+                    total_price += price * (order_num-free_item_num)
+            else:
+                total_price += price * order_num
+
+            update_info[sku] = (name, price, qty-order_num, order_num)
+
+        # update inventory
+        for sku, tmp in update_info.items():
+            name, price, num, order_num = tmp
+
+            for _ in range(order_num):
+                scanned_items.append(name)
+
+            sql = "UPDATE item SET name='{0}', price={1}, qty={2} WHERE sku='{3}'".format(name, price,
+                                                                                          num,
+                                                                                          sku)
             print(sql)
             db.execute(sql)
             db.commit()
+
+        # save order info
         total_price = round(total_price, 2)
         db.execute(
             "INSERT INTO online_order (detail, item_names, total_price) VALUES (?, ?, ?)",
             (detail, ",".join(scanned_items), total_price))
         db.commit()
+
+        # return response
         res = jsonify({"Scanned Items": ",".join(scanned_items), "Total": total_price})
         res.status_code = 200
         return res
 
+    # error response
     res = jsonify(error=error)
     res.status_code = 400
     return res
 
 
-@bp.route("/getorder", methods=["GET"])
+@bp.route("/getallorder", methods=["GET"])
 def get_all_orders():
     """endpoint returning all orders
         ---
@@ -106,9 +137,12 @@ def get_all_orders():
           Order:
             type: object
             properties:
+                id:
+                    type: integer
+                    example: '1'
                 created:
                     type: string
-                    example: '1'
+                    example: 'Mon, 03 Jun 2019 08:35:34 GMT'
                 scanned_items:
                     type: string
                     example: 'Google Home'
@@ -129,12 +163,12 @@ def get_all_orders():
               items: [{'created': 'Mon, 03 Jun 2019 08:35:34 GMT','scanned_items': 'Respberry Pi B,MacBook Pro','total_price': 5399.99}]
         """
     items = get_db().execute(
-            "SELECT created,  item_names, total_price FROM online_order"
+            "SELECT id, created,  item_names, total_price FROM online_order"
         ).fetchall()
 
     res = []
     for i in items:
-        tmp = {"created": i["created"], "scanned_items": i["item_names"], "total_price": i["total_price"]}
+        tmp = {"id": i["id"], "created": i["created"], "scanned_items": i["item_names"], "total_price": i["total_price"]}
         res.append(tmp)
     print(res)
 
@@ -142,40 +176,50 @@ def get_all_orders():
     res.status_code = 200
     return res
 
-class Orders:
-    def __init__(self):
-        self.db = get_db()
 
-    def get_all_orders(self):
-        orders = self.db.execute(
-            "SELECT * FROM online_order"
-        ).fetchall()
+@bp.route("/getorder/<int:orderid>", methods=["GET"])
+def get_order(orderid):
+    """endpoint returning order with id
+        ---
+        definitions:
+          Order:
+            type: object
+            properties:
+                id:
+                    type: integer
+                    example: '1'
+                created:
+                    type: string
+                    example: 'Mon, 03 Jun 2019 08:35:34 GMT'
+                scanned_items:
+                    type: string
+                    example: 'Google Home'
+                total_price:
+                    type: number
+                    example: 49.99
 
-        return orders
+        parameters:
+          - name: orderid
+            in: path
+            description: "id of order"
+            type: string
+            example: '2'
+            required: true
 
-    def get_order(self, order_id):
-        order = self.db.execute(
-            "SELECT * FROM online_order"
-            "WHERE id = ?", order_id
-        ).fetchone()
-        return order
+        responses:
+          200:
+            description: A Order
+            schema:
+              $ref: '#/definitions/Order'
+            examples:
+              items: {'created': 'Mon, 03 Jun 2019 08:35:34 GMT','scanned_items': 'Respberry Pi B,MacBook Pro','total_price': 5399.99}
+        """
+    sql = "SELECT id, created,  item_names, total_price FROM online_order where id={}".format(orderid)
+    item = get_db().execute(sql).fetchone()
 
-    def update_order(self, detail, order_id):
-        self.db.execute(
-            "UPDATE online_order SET detail=?"
-            "WHERE id=?", (detail, order_id)
-        )
-        self.db.commit()
+    res = {"id": item["id"], "created": item["created"], "scanned_items": item["item_names"], "total_price": item["total_price"]}
+    print(res)
 
-    def delete_order(self, order_id):
-        self.db.execute(
-            "DELETE FROM online_order"
-            "WHERE id=?", order_id
-        )
-        self.db.commit()
-
-    def add_order(self, detail):
-        self.db.execute(
-            "INSERT INTO online_order (detail) VALUES (?)", detail
-        )
-        self.db.commit()
+    res = jsonify(res)
+    res.status_code = 200
+    return res

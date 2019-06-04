@@ -5,6 +5,10 @@ This project setup Endpoints for checkout demo function
 - python 3.6
 - pip
 
+# Packages
+- Flask
+- Flasgger
+
 # Installation
 1. create virtual environment (optional)
   
