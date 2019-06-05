@@ -52,17 +52,140 @@ http://127.0.0.1:5000/apidocs
         
         print(response.text)
         
-- /items/getitem GET returning all items
-- /orders/addorder POST adding a new order
+        # example return
+        # code:200
+        # {"success":true}        
+        
+- /items/getallitem GET returning all items
+        
+        # example request in python
+        import requests
+        
+        url = "http://127.0.0.1:5000/items/getallitem/"
+        
+        response = requests.get(url)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        # [
+        #   {
+        #     "name": "Google Home",
+        #     "price": "49.99",
+        #     "qty": 10,
+        #     "sku": "120P90"
+        #   }
+        # ]
+
+- /items/deleteitem/{sku} DELETE deleting item
+        
+        # example request in python
+        import requests
+        
+        sku = "120P90"
+        url = "http://127.0.0.1:5000/items/deleteitem/"+sku
+        
+        response = requests.delete(url)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        # {"success":true} 
+
+- /items/getitem/{sku} GET returning item based on sku
+
+        # example request in python
+        import requests
+        
+        sku = "120P90"
+        url = "http://127.0.0.1:5000/items/getitem/"+sku
+        
+        response = requests.get(url)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        #   {
+        #     "name": "Google Home",
+        #     "price": "49.99",
+        #     "qty": 10,
+        #     "sku": "120P90"
+        #   }
+
+        
+- /orders/checkout/sku POST adding a new order with sku
 
         # example request in python
         import requests
 
-        url = "http://127.0.0.1:5000/orders/addorder"
+        url = "http://127.0.0.1:5000/orders/checkout/sku"
         
         payload = {"detail":"43N23P,234234"}
         
         response = requests.post(url, data=payload)
         
         print(response.text)
-- /orders/getorder GET returning all orders
+        
+        # example return
+        # code:200
+
+- /orders/checkout/name POST adding a new order with name
+
+        # example request in python
+        import requests
+
+        url = "http://127.0.0.1:5000/orders/checkout/name"
+        
+        payload = {"detail":"MacBook Pro,Respberry Pi B"}
+        
+        response = requests.post(url, data=payload)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        
+- /orders/getallorder GET returning all orders
+
+        # example request in python
+        import requests
+
+        url = "http://127.0.0.1:5000/orders/getallorder"
+        
+        response = requests.get(url)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        # [
+        #   {
+        #     "created": "Mon, 03 Jun 2019 08:35:34 GMT",
+        #     "scanned_items": "Respberry Pi B,MacBook Pro",
+        #     "total_price": 5399.99
+        #   }
+        # ]
+
+- /orders/getorder/{orderid} GET returning order based on order id
+
+        # example request in python
+        import requests
+        
+        order_id = "1"
+        url = "http://127.0.0.1:5000/orders/getorder/"+order_id
+        
+        response = requests.get(url)
+        
+        print(response.text)
+        
+        # example return
+        # code:200
+        #   {
+        #     "created": "Mon, 03 Jun 2019 08:35:34 GMT",
+        #     "scanned_items": "Respberry Pi B,MacBook Pro",
+        #     "total_price": 5399.99
+        #   }
+        

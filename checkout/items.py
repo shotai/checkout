@@ -205,7 +205,6 @@ def update_item(sku):
     except Exception:
         return jsonify(error="missing field, must have sku, name, price, qty"), 400
 
-    print(sku)
     db = get_db()
     error = None
 
@@ -222,9 +221,8 @@ def update_item(sku):
     ):
         error = "Item {0} is not exist.".format(sku)
 
-    print(error)
     if error is None:
-        sql = "UPDATE item SET name='{0}', price={1}, qty={2} WHERE sku={3}".format(name, price, qty, sku)
+        sql = "UPDATE item SET name='{0}', price={1}, qty={2} WHERE sku='{3}'".format(name, price, qty, sku)
         db.execute(sql)
         db.commit()
         res = jsonify(success=True)
@@ -232,7 +230,6 @@ def update_item(sku):
         return res
 
     res = jsonify(error=error)
-    print(res)
     res.status_code = 400
     return res
 
@@ -251,7 +248,7 @@ def delete_item(sku):
           200:
             description: success delete item
         """
-    print(sku)
+
     db = get_db()
     error = None
 
@@ -262,9 +259,9 @@ def delete_item(sku):
     ):
         error = "Item {0} is not exist.".format(sku)
 
-    print(error)
     if error is None:
-        sql = "DELETE item WHERE sku={0}".format(sku)
+        sql = "DELETE FROM item WHERE sku='{0}'".format(sku)
+        print(sql)
         db.execute(sql)
         db.commit()
         res = jsonify(success=True)
@@ -272,6 +269,5 @@ def delete_item(sku):
         return res
 
     res = jsonify(error=error)
-    print(res)
     res.status_code = 400
     return res
