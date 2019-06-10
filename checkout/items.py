@@ -48,7 +48,6 @@ def get_all_item():
     for i in items:
         tmp = {"sku": i["sku"], "name": i["name"], "price": i["price"], "qty": i["qty"]}
         res.append(tmp)
-    print(res)
 
     res = jsonify(res)
     res.status_code = 200
@@ -93,7 +92,6 @@ def get_item(sku):
     item = get_db().execute(sql).fetchone()
 
     res = {"sku": item["sku"], "name": item["name"], "price": item["price"], "qty": item["qty"]}
-    print(res)
 
     res = jsonify(res)
     res.status_code = 200
@@ -137,7 +135,6 @@ def add_item():
     except Exception:
         return jsonify(error="missing form field, must have sku, name, price, qty"), 400
 
-    print(sku)
     db = get_db()
     error = None
 
@@ -154,7 +151,6 @@ def add_item():
     ):
         error = "Item {0} is already exist.".format(sku)
 
-    print(error)
     if error is None:
         db.execute(
             "INSERT INTO item (sku, name, price, qty) VALUES (?, ?, ?, ?)", (sku, name, price, qty))
@@ -164,7 +160,6 @@ def add_item():
         return res
 
     res = jsonify(error=error)
-    print(res)
     res.status_code = 400
     return res
 
@@ -261,7 +256,6 @@ def delete_item(sku):
 
     if error is None:
         sql = "DELETE FROM item WHERE sku='{0}'".format(sku)
-        print(sql)
         db.execute(sql)
         db.commit()
         res = jsonify(success=True)
