@@ -4,6 +4,7 @@ This project setup Endpoints for checkout demo function
 # Requirements
 - python 3.6
 - pip
+- sqlite
 
 # Packages
 - Flask
@@ -23,7 +24,7 @@ This project setup Endpoints for checkout demo function
 
         $ export FLASK_APP=checkout
 
-4. init database (optional, if you need a new database, please run this. It will generate a new db.sqlite file)
+4. init database (optional, if you need a new database, please remove db.sqlite and run this. It will generate a new db.sqlite file)
 
         $ flask init-db
 
@@ -131,6 +132,10 @@ http://127.0.0.1:5000/apidocs
         
         # example return
         # code:200
+        # {
+        #   "Scanned Items": "MacBook Pro,Respberry Pi B",
+        #   "Total": 5399.99
+        # }   
 
 - /orders/checkout/name POST adding a new order with name
 
@@ -147,7 +152,11 @@ http://127.0.0.1:5000/apidocs
         
         # example return
         # code:200
-        
+        # {
+        #   "Scanned Items": "MacBook Pro,Respberry Pi B",
+        #   "Total": 5399.99
+        # } 
+
 - /orders/getallorder GET returning all orders
 
         # example request in python
