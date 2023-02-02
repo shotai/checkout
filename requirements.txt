@@ -12,4 +12,4 @@ PyYAML==4.2b1
 six==1.12.0
 swagger-py-codegen==0.4.0
 swagger-spec-validator==2.4.3
-Werkzeug==0.15.4
+Werkzeug==0.15.5
